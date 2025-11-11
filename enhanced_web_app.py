@@ -125,13 +125,22 @@ class EnhancedPneumoniaDetector:
             "ResNet50 Classifier": "resnet_classifier_colab.h5"
         }
         
+        # Create models directory if it doesn't exist
+        os.makedirs(models_dir, exist_ok=True)
+        
         for model_name, model_file in model_files.items():
             model_path = os.path.join(models_dir, model_file)
             if os.path.exists(model_path):
                 try:
                     self.models[model_name] = load_model(model_path)
+                    st.sidebar.success(f"✅ {model_name} loaded")
                 except Exception as e:
-                    st.sidebar.error(f"❌ Failed to load {model_name}")
+                    st.sidebar.error(f"❌ Failed to load {model_name}: {str(e)}")
+        
+        # If no models loaded, show demo mode message
+        if not self.models:
+            st.sidebar.warning("⚠️ Running in DEMO MODE - No models found")
+            st.sidebar.info("💡 Models are too large for GitHub. This demo shows the UI/UX features.")
     
     def preprocess_image(self, img, target_size=(224, 224)):
         """Preprocess image for model prediction"""
@@ -397,8 +406,19 @@ def main():
             help="Choose which AI model to use for prediction"
         )
     else:
-        st.error("❌ No models found! Please ensure your trained models are in the 'models' directory.")
-        st.stop()
+        st.sidebar.warning("🎭 DEMO MODE")
+        st.sidebar.markdown("""
+        **Models not available**
+        
+        This is a demo showcasing:
+        - ✅ UI/UX Design
+        - ✅ Treatment Info
+        - ✅ Hospital Locator
+        - ✅ Educational Resources
+        
+        For full AI predictions, run locally with trained models.
+        """)
+        selected_model = "Demo Mode"
     
     # Feature toggles
     st.sidebar.subheader("🎯 Features")
@@ -438,12 +458,26 @@ def main():
                 st.image(img, caption="Uploaded X-Ray", use_column_width=True)
                 
                 if st.button("🚀 Analyze X-Ray", key="analyze_btn"):
-                    with st.spinner("🔄 AI is analyzing your X-ray..."):
-                        result = detector.predict(img, selected_model)
-                        
-                        if result:
-                            st.session_state.result = result
-                            st.session_state.analyzed = True
+                    if not detector.models:
+                        # Demo mode - show sample result
+                        st.warning("⚠️ Running in DEMO MODE - Showing sample prediction")
+                        st.session_state.result = {
+                            'prediction': 'PNEUMONIA',
+                            'confidence': 0.87,
+                            'probabilities': {
+                                'NORMAL': 0.13,
+                                'PNEUMONIA': 0.87
+                            },
+                            'inference_time': 0.234
+                        }
+                        st.session_state.analyzed = True
+                    else:
+                        with st.spinner("🔄 AI is analyzing your X-ray..."):
+                            result = detector.predict(img, selected_model)
+                            
+                            if result:
+                                st.session_state.result = result
+                                st.session_state.analyzed = True
         
         with col2:
             st.subheader("🔍 Analysis Results")
