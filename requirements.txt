@@ -1,29 +1,30 @@
 # Pneumonia Detection - Streamlit Cloud Requirements
-# Optimized for fast deployment with CPU-only TensorFlow
+# Optimized for Python 3.11 compatibility
 
-# Core ML libraries - CPU only for faster installation
-tensorflow-cpu==2.15.0
-numpy==1.26.4
-pillow==10.0.0
-h5py==3.10.0
+# Core ML libraries
+tensorflow-cpu
+keras
+numpy<2.0.0
+pillow
+h5py
 
 # Web Framework
-streamlit==1.28.0
-streamlit-folium==0.15.0
+streamlit
+streamlit-folium
 
 # Data processing
-pandas==2.1.4
+pandas
 
 # Visualization
-matplotlib==3.8.2
-seaborn==0.13.0
-plotly==5.18.0
+matplotlib
+seaborn
+plotly
 
 # Maps and Location
-folium==0.15.0
+folium
 
 # API and Web
-requests==2.31.0
+requests
 
 # For downloading models from Google Drive
-gdown==4.7.1
+gdown
