@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🫁 Pneumonia Detection AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 90%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin: 30px 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background-color: #f0f4ff;
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .upload-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .preview-area {
+            display: none;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .preview-image {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .result-area {
+            display: none;
+            margin: 30px 0;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .result-normal {
+            background-color: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        
+        .result-pneumonia {
+            background-color: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .result-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .confidence {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .disclaimer {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+            color: #856404;
+        }
+        
+        .model-selector {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .model-selector select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🫁 Pneumonia Detection AI</h1>
+            <p>Upload a chest X-ray image for AI-powered pneumonia detection</p>
+        </div>
+        
+        <div class="model-selector">
+            <label for="modelSelect">Choose AI Model: </label>
+            <select id="modelSelect">
+                <option value="hybrid">Hybrid Model (Best Accuracy)</option>
+                <option value="resnet50">ResNet50 Classifier</option>
+            </select>
+        </div>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📤</div>
+            <div class="upload-text">Drag and drop your X-ray image here</div>
+            <div>or</div>
+            <br>
+            <button class="btn" onclick="document.getElementById('fileInput').click()">
+                Choose File
+            </button>
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+        </div>
+        
+        <div class="preview-area" id="previewArea">
+            <h3>Selected Image:</h3>
+            <img id="previewImage" class="preview-image" alt="Preview">
+            <br><br>
+            <button class="btn" id="analyzeBtn" onclick="analyzeImage()">
+                🔍 Analyze Image
+            </button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Analyzing image with AI...</div>
+        </div>
+        
+        <div class="result-area" id="resultArea">
+            <div class="result-title" id="resultTitle"></div>
+            <div class="confidence" id="confidence"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="detailedResults"></div>
+        </div>
+        
+        <div class="disclaimer">
+            ⚠️ <strong>Medical Disclaimer:</strong> This AI tool is for educational and research purposes only. 
+            It should not be used as a substitute for professional medical diagnosis. 
+            Always consult with qualified healthcare professionals for medical decisions.
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewArea = document.getElementById('previewArea');
+        const previewImage = document.getElementById('previewImage');
+        const loading = document.getElementById('loading');
+        const resultArea = document.getElementById('resultArea');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewArea.style.display = 'block';
+                resultArea.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        async function analyzeImage() {
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select an image first');
+                return;
+            }
+            
+            const modelName = document.getElementById('modelSelect').value;
+            
+            // Show loading
+            loading.style.display = 'block';
+            analyzeBtn.disabled = true;
+            resultArea.style.display = 'none';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch(`/predict/${modelName}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Prediction failed');
+                }
+                
+                const result = await response.json();
+                displayResult(result);
+                
+            } catch (error) {
+                alert('Error analyzing image: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        }
+        
+        function displayResult(result) {
+            const resultTitle = document.getElementById('resultTitle');
+            const confidence = document.getElementById('confidence');
+            const progressFill = document.getElementById('progressFill');
+            const detailedResults = document.getElementById('detailedResults');
+            
+            // Set result class
+            resultArea.className = 'result-area ' + 
+                (result.prediction === 'NORMAL' ? 'result-normal' : 'result-pneumonia');
+            
+            // Display main result
+            resultTitle.textContent = `Prediction: ${result.prediction}`;
+            confidence.textContent = `Confidence: ${(result.confidence * 100).toFixed(1)}%`;
+            
+            // Animate progress bar
+            progressFill.style.width = `${result.confidence * 100}%`;
+            
+            // Show detailed probabilities
+            detailedResults.innerHTML = `
+                <h4>Detailed Analysis:</h4>
+                <p>Normal: ${(result.probabilities.NORMAL * 100).toFixed(1)}%</p>
+                <p>Pneumonia: ${(result.probabilities.PNEUMONIA * 100).toFixed(1)}%</p>
+                <p>Model: ${result.model_used}</p>
+                <p>Processing time: ${result.processing_time.toFixed(3)}s</p>
+            `;
+            
+            resultArea.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
