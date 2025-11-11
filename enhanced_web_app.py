@@ -8,9 +8,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image, ImageEnhance
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
 import os
 import time
 import requests
@@ -19,6 +16,16 @@ import plotly.graph_objects as go
 import folium
 from streamlit_folium import folium_static
 import json
+
+# Optional TensorFlow import for demo mode compatibility
+try:
+    import tensorflow as tf
+    from tensorflow.keras.models import load_model
+    from tensorflow.keras.preprocessing import image
+    TF_AVAILABLE = True
+except ImportError:
+    TF_AVAILABLE = False
+    st.sidebar.warning("⚠️ TensorFlow not available - Running in Demo Mode")
 
 # Configure page
 st.set_page_config(
@@ -119,6 +126,10 @@ class EnhancedPneumoniaDetector:
         
     def load_models(self):
         """Load all available models"""
+        if not TF_AVAILABLE:
+            st.sidebar.info("💡 Running in DEMO MODE - TensorFlow not installed")
+            return
+            
         models_dir = "models"
         model_files = {
             "Hybrid Model (Best)": "hybrid_model_colab.h5",
