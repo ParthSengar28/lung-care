@@ -1,7 +1,8 @@
-# Pneumonia Detection - Streamlit Cloud Requirements (Lightweight Demo Mode)
-# TensorFlow removed for faster deployment - app runs in demo mode
+# Pneumonia Detection - Streamlit Cloud Requirements
+# Full AI functionality with TensorFlow
 
-# Core libraries
+# Core ML libraries
+tensorflow>=2.17.0
 numpy>=1.24.0,<2.0.0
 pillow>=10.0.0
 
@@ -23,5 +24,5 @@ folium>=0.15.0
 # API and Web
 requests>=2.31.0
 
-# Optional: Uncomment for full AI functionality (slower deployment)
-# tensorflow>=2.17.0
+# For downloading models from Google Drive
+gdown>=4.7.0

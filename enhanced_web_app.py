@@ -17,15 +17,10 @@ import folium
 from streamlit_folium import folium_static
 import json
 
-# Optional TensorFlow import for demo mode compatibility
-try:
-    import tensorflow as tf
-    from tensorflow.keras.models import load_model
-    from tensorflow.keras.preprocessing import image
-    TF_AVAILABLE = True
-except ImportError:
-    TF_AVAILABLE = False
-    st.sidebar.warning("⚠️ TensorFlow not available - Running in Demo Mode")
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
+import gdown
 
 # Configure page
 st.set_page_config(
@@ -122,14 +117,27 @@ st.markdown("""
 class EnhancedPneumoniaDetector:
     def __init__(self):
         self.models = {}
+        self.model_urls = {
+            "Hybrid Model (Best)": "YOUR_GOOGLE_DRIVE_FILE_ID_HERE",
+            "ResNet50 Classifier": "YOUR_GOOGLE_DRIVE_FILE_ID_HERE_2"
+        }
         self.load_models()
+    
+    def download_model_from_gdrive(self, file_id, output_path):
+        """Download model from Google Drive"""
+        if os.path.exists(output_path):
+            return True
+        
+        try:
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, output_path, quiet=False)
+            return True
+        except Exception as e:
+            st.error(f"Failed to download model: {str(e)}")
+            return False
         
     def load_models(self):
-        """Load all available models"""
-        if not TF_AVAILABLE:
-            st.sidebar.info("💡 Running in DEMO MODE - TensorFlow not installed")
-            return
-            
+        """Load all available models (download from Google Drive if needed)"""
         models_dir = "models"
         model_files = {
             "Hybrid Model (Best)": "hybrid_model_colab.h5",
@@ -141,17 +149,28 @@ class EnhancedPneumoniaDetector:
         
         for model_name, model_file in model_files.items():
             model_path = os.path.join(models_dir, model_file)
+            
+            # Download from Google Drive if not exists and URL is configured
+            if not os.path.exists(model_path):
+                file_id = self.model_urls.get(model_name, "")
+                if file_id and file_id != "YOUR_GOOGLE_DRIVE_FILE_ID_HERE" and file_id != "YOUR_GOOGLE_DRIVE_FILE_ID_HERE_2":
+                    with st.spinner(f"📥 Downloading {model_name}..."):
+                        if not self.download_model_from_gdrive(file_id, model_path):
+                            continue
+            
+            # Load model if exists
             if os.path.exists(model_path):
                 try:
-                    self.models[model_name] = load_model(model_path)
+                    with st.spinner(f"🔄 Loading {model_name}..."):
+                        self.models[model_name] = load_model(model_path)
                     st.sidebar.success(f"✅ {model_name} loaded")
                 except Exception as e:
                     st.sidebar.error(f"❌ Failed to load {model_name}: {str(e)}")
         
-        # If no models loaded, show demo mode message
+        # If no models loaded, show instructions
         if not self.models:
-            st.sidebar.warning("⚠️ Running in DEMO MODE - No models found")
-            st.sidebar.info("💡 Models are too large for GitHub. This demo shows the UI/UX features.")
+            st.sidebar.warning("⚠️ No models loaded")
+            st.sidebar.info("💡 To enable AI predictions, upload your models to Google Drive and update the file IDs in the code.")
     
     def preprocess_image(self, img, target_size=(224, 224)):
         """Preprocess image for model prediction"""
@@ -417,19 +436,9 @@ def main():
             help="Choose which AI model to use for prediction"
         )
     else:
-        st.sidebar.warning("🎭 DEMO MODE")
-        st.sidebar.markdown("""
-        **Models not available**
-        
-        This is a demo showcasing:
-        - ✅ UI/UX Design
-        - ✅ Treatment Info
-        - ✅ Hospital Locator
-        - ✅ Educational Resources
-        
-        For full AI predictions, run locally with trained models.
-        """)
-        selected_model = "Demo Mode"
+        st.sidebar.error("❌ No models loaded")
+        st.sidebar.info("📝 To enable AI predictions:\n1. Upload models to Google Drive\n2. Make them publicly accessible\n3. Update file IDs in code")
+        selected_model = None
     
     # Feature toggles
     st.sidebar.subheader("🎯 Features")
@@ -470,18 +479,7 @@ def main():
                 
                 if st.button("🚀 Analyze X-Ray", key="analyze_btn"):
                     if not detector.models:
-                        # Demo mode - show sample result
-                        st.warning("⚠️ Running in DEMO MODE - Showing sample prediction")
-                        st.session_state.result = {
-                            'prediction': 'PNEUMONIA',
-                            'confidence': 0.87,
-                            'probabilities': {
-                                'NORMAL': 0.13,
-                                'PNEUMONIA': 0.87
-                            },
-                            'inference_time': 0.234
-                        }
-                        st.session_state.analyzed = True
+                        st.error("❌ No models available. Please configure Google Drive links for model files.")
                     else:
                         with st.spinner("🔄 AI is analyzing your X-ray..."):
                             result = detector.predict(img, selected_model)
