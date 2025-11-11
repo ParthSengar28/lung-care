@@ -1,7 +1,7 @@
 # Pneumonia Detection - Streamlit Cloud Requirements
 
 # Core ML libraries (CPU version for Streamlit Cloud)
-tensorflow-cpu==2.13.0
+tensorflow
 numpy==1.24.3
 pillow==10.0.0
 opencv-python-headless==4.8.0.76
