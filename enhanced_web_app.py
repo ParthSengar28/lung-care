@@ -162,10 +162,12 @@ class EnhancedPneumoniaDetector:
             if os.path.exists(model_path):
                 try:
                     with st.spinner(f"🔄 Loading {model_name}..."):
-                        self.models[model_name] = load_model(model_path)
+                        # Load with compile=False to avoid optimizer issues between TF versions
+                        self.models[model_name] = load_model(model_path, compile=False)
                     st.sidebar.success(f"✅ {model_name} loaded")
                 except Exception as e:
                     st.sidebar.error(f"❌ Failed to load {model_name}: {str(e)}")
+                    st.sidebar.info("💡 Model may be incompatible with current TensorFlow version")
         
         # If no models loaded, show instructions
         if not self.models:
