@@ -118,8 +118,8 @@ class EnhancedPneumoniaDetector:
     def __init__(self):
         self.models = {}
         self.model_urls = {
-            "Hybrid Model (Best)": "YOUR_GOOGLE_DRIVE_FILE_ID_HERE",
-            "ResNet50 Classifier": "YOUR_GOOGLE_DRIVE_FILE_ID_HERE_2"
+            "Hybrid Model (Best)": "1e63uR6n38VPpVoh8oOXS4pv6ZVEz8_19",
+            "ResNet50 Classifier": "1s-PaTunk_yGA_j_bG6ogJuhf1yShLtAZ"
         }
         self.load_models()
     
