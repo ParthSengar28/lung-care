@@ -22,9 +22,15 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import gdown
 
+# Import location service
+import sys
+sys.path.append('.')
+from src.utils.location_service import LocationService
+from config.api_config import APIConfig
+
 # Configure page
 st.set_page_config(
-    page_title="🫁 Pneumonia Detection & Care",
+    page_title=" Pneumonia Detection & Care",
     page_icon="🫁",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -154,25 +160,25 @@ class EnhancedPneumoniaDetector:
             if not os.path.exists(model_path):
                 file_id = self.model_urls.get(model_name, "")
                 if file_id and file_id != "YOUR_GOOGLE_DRIVE_FILE_ID_HERE" and file_id != "YOUR_GOOGLE_DRIVE_FILE_ID_HERE_2":
-                    with st.spinner(f"📥 Downloading {model_name}..."):
+                    with st.spinner(f" Downloading {model_name}..."):
                         if not self.download_model_from_gdrive(file_id, model_path):
                             continue
             
             # Load model if exists
             if os.path.exists(model_path):
                 try:
-                    with st.spinner(f"🔄 Loading {model_name}..."):
+                    with st.spinner(f" Loading {model_name}..."):
                         # Load with compile=False to avoid optimizer issues between TF versions
                         self.models[model_name] = load_model(model_path, compile=False)
-                    st.sidebar.success(f"✅ {model_name} loaded")
+                    st.sidebar.success(f" {model_name} loaded")
                 except Exception as e:
-                    st.sidebar.error(f"❌ Failed to load {model_name}: {str(e)}")
-                    st.sidebar.info("💡 Model may be incompatible with current TensorFlow version")
+                    st.sidebar.error(f" Failed to load {model_name}: {str(e)}")
+                    st.sidebar.info(" Model may be incompatible with current TensorFlow version")
         
         # If no models loaded, show instructions
         if not self.models:
-            st.sidebar.warning("⚠️ No models loaded")
-            st.sidebar.info("💡 To enable AI predictions, upload your models to Google Drive and update the file IDs in the code.")
+            st.sidebar.warning(" No models loaded")
+            st.sidebar.info(" To enable AI predictions, upload your models to Google Drive and update the file IDs in the code.")
     
     def preprocess_image(self, img, target_size=(224, 224)):
         """Preprocess image for model prediction"""
@@ -283,11 +289,11 @@ def get_treatment_info(condition):
     if condition == "PNEUMONIA":
         return {
             'immediate_actions': [
-                "🚨 Seek immediate medical attention",
-                "💊 Do not self-medicate without doctor consultation",
-                "🌡️ Monitor temperature regularly",
-                "💧 Stay well hydrated",
-                "🛏️ Get plenty of rest"
+                " Seek immediate medical attention",
+                " Do not self-medicate without doctor consultation",
+                " Monitor temperature regularly",
+                " Stay well hydrated",
+                " Get plenty of rest"
             ],
             'medical_treatment': [
                 "Antibiotics (for bacterial pneumonia)",
@@ -305,12 +311,12 @@ def get_treatment_info(condition):
                 "Monitor symptoms and report changes"
             ],
             'warning_signs': [
-                "🚨 Difficulty breathing or shortness of breath",
-                "🚨 Chest pain that worsens",
-                "🚨 High fever (above 102°F/39°C)",
-                "🚨 Confusion or altered mental state",
-                "🚨 Bluish lips or fingernails",
-                "🚨 Persistent coughing with blood"
+                " Difficulty breathing or shortness of breath",
+                " Chest pain that worsens",
+                " High fever (above 102°F/39°C)",
+                " Confusion or altered mental state",
+                " Bluish lips or fingernails",
+                " Persistent coughing with blood"
             ],
             'recovery_time': "2-3 weeks with proper treatment, but can vary",
             'follow_up': "Schedule follow-up X-ray after 6 weeks to ensure complete recovery"
@@ -318,13 +324,13 @@ def get_treatment_info(condition):
     else:
         return {
             'prevention_tips': [
-                "🛡️ Get vaccinated (pneumonia and flu vaccines)",
-                "🧼 Wash hands frequently",
-                "😷 Avoid close contact with sick people",
-                "🚭 Don't smoke and avoid secondhand smoke",
-                "💪 Maintain a healthy lifestyle",
-                "😴 Get adequate sleep",
-                "🥗 Eat a balanced diet"
+                " Get vaccinated (pneumonia and flu vaccines)",
+                " Wash hands frequently",
+                " Avoid close contact with sick people",
+                " Don't smoke and avoid secondhand smoke",
+                " Maintain a healthy lifestyle",
+                " Get adequate sleep",
+                " Eat a balanced diet"
             ],
             'healthy_habits': [
                 "Regular exercise to strengthen lungs",
@@ -335,13 +341,25 @@ def get_treatment_info(condition):
             ]
         }
 
-def create_hospital_map(user_location=None):
-    """Create map with nearby hospitals"""
+def create_hospital_map(user_location=None, user_address=None, use_real_api=True):
+    """Create map with nearby hospitals using real API data"""
     
-    # Default location (you can use user's location with geolocation API)
+    # Initialize location service
+    location_service = LocationService(google_api_key=APIConfig.GOOGLE_MAPS_API_KEY)
+    
+    # Get user location
     if user_location is None:
-        # Default to a central location (example: New York)
-        user_location = [40.7128, -74.0060]
+        if user_address:
+            # Geocode the address
+            coords = location_service.geocode_address(user_address)
+            if coords:
+                user_location = list(coords)
+            else:
+                st.warning("⚠️ Could not geocode address. Using default location.")
+                user_location = [40.7128, -74.0060]  # Default to New York
+        else:
+            # Default location
+            user_location = [40.7128, -74.0060]
     
     # Create map centered on user location
     m = folium.Map(
@@ -353,56 +371,55 @@ def create_hospital_map(user_location=None):
     # Add user location marker
     folium.Marker(
         user_location,
-        popup="Your Location",
+        popup="📍 Your Location",
         tooltip="You are here",
         icon=folium.Icon(color='red', icon='user', prefix='fa')
     ).add_to(m)
     
-    # Sample nearby hospitals (in production, use Google Places API or similar)
-    nearby_hospitals = [
-        {
-            'name': 'City General Hospital',
-            'address': '123 Medical Center Dr',
-            'phone': '(555) 123-4567',
-            'distance': '0.8 miles',
-            'emergency': True,
-            'location': [user_location[0] + 0.01, user_location[1] + 0.01]
-        },
-        {
-            'name': 'St. Mary Medical Center',
-            'address': '456 Healthcare Ave',
-            'phone': '(555) 234-5678',
-            'distance': '1.2 miles',
-            'emergency': True,
-            'location': [user_location[0] - 0.01, user_location[1] + 0.015]
-        },
-        {
-            'name': 'Community Health Clinic',
-            'address': '789 Wellness Blvd',
-            'phone': '(555) 345-6789',
-            'distance': '1.5 miles',
-            'emergency': False,
-            'location': [user_location[0] + 0.015, user_location[1] - 0.01]
-        },
-        {
-            'name': 'Regional Medical Center',
-            'address': '321 Hospital Rd',
-            'phone': '(555) 456-7890',
-            'distance': '2.1 miles',
-            'emergency': True,
-            'location': [user_location[0] - 0.015, user_location[1] - 0.015]
-        }
-    ]
+    # Find nearby hospitals using API
+    nearby_hospitals = []
     
-    # Add hospital markers
+    if use_real_api:
+        with st.spinner("🔍 Searching for nearby hospitals..."):
+            hospitals_data = location_service.find_nearby_hospitals(
+                user_location[0], 
+                user_location[1],
+                radius=APIConfig.PLACES_SEARCH_RADIUS,
+                max_results=APIConfig.MAX_RESULTS
+            )
+            
+            if hospitals_data:
+                for hospital_data in hospitals_data:
+                    hospital = {
+                        'name': hospital_data['name'],
+                        'address': hospital_data['address'],
+                        'phone': hospital_data.get('phone', 'N/A'),
+                        'distance': f"{hospital_data['distance']} km",
+                        'emergency': hospital_data.get('emergency', True),
+                        'location': hospital_data['location'],
+                        'rating': hospital_data.get('rating', 'N/A')
+                    }
+                    nearby_hospitals.append(hospital)
+            else:
+                st.info("ℹ️ Using sample hospital data (API returned no results)")
+                nearby_hospitals = get_sample_hospitals(user_location)
+    else:
+        # Use sample data
+        nearby_hospitals = get_sample_hospitals(user_location)
+    
+    # Add hospital markers to map
     for hospital in nearby_hospitals:
         icon_color = 'red' if hospital['emergency'] else 'blue'
+        
+        rating_text = f"<p><b>⭐ Rating:</b> {hospital['rating']}</p>" if hospital.get('rating') != 'N/A' else ""
+        
         popup_html = f"""
-        <div style="width: 200px;">
-            <h4>{hospital['name']}</h4>
+        <div style="width: 220px;">
+            <h4>🏥 {hospital['name']}</h4>
             <p><b>📍 Address:</b> {hospital['address']}</p>
             <p><b>📞 Phone:</b> {hospital['phone']}</p>
             <p><b>📏 Distance:</b> {hospital['distance']}</p>
+            {rating_text}
             <p><b>🚨 Emergency:</b> {'Yes' if hospital['emergency'] else 'No'}</p>
         </div>
         """
@@ -416,6 +433,47 @@ def create_hospital_map(user_location=None):
     
     return m, nearby_hospitals
 
+def get_sample_hospitals(user_location):
+    """Get sample hospital data as fallback"""
+    return [
+        {
+            'name': 'City General Hospital',
+            'address': '123 Medical Center Dr',
+            'phone': '(555) 123-4567',
+            'distance': '0.8 km',
+            'emergency': True,
+            'location': [user_location[0] + 0.01, user_location[1] + 0.01],
+            'rating': 4.5
+        },
+        {
+            'name': 'St. Mary Medical Center',
+            'address': '456 Healthcare Ave',
+            'phone': '(555) 234-5678',
+            'distance': '1.2 km',
+            'emergency': True,
+            'location': [user_location[0] - 0.01, user_location[1] + 0.015],
+            'rating': 4.7
+        },
+        {
+            'name': 'Community Health Clinic',
+            'address': '789 Wellness Blvd',
+            'phone': '(555) 345-6789',
+            'distance': '1.5 km',
+            'emergency': False,
+            'location': [user_location[0] + 0.015, user_location[1] - 0.01],
+            'rating': 4.2
+        },
+        {
+            'name': 'Regional Medical Center',
+            'address': '321 Hospital Rd',
+            'phone': '(555) 456-7890',
+            'distance': '2.1 km',
+            'emergency': True,
+            'location': [user_location[0] - 0.015, user_location[1] - 0.015],
+            'rating': 4.8
+        }
+    ]
+
 def main():
     # Initialize detector
     if 'detector' not in st.session_state:
@@ -424,43 +482,43 @@ def main():
     detector = st.session_state.detector
     
     # Header
-    st.markdown('<h1 class="main-header">🫁 AI-Powered Pneumonia Detection & Care</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🫁 Lung Care</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Advanced AI diagnosis with treatment guidance and healthcare resources</p>', unsafe_allow_html=True)
     
     # Sidebar
-    st.sidebar.title("🔧 Settings & Info")
+    st.sidebar.title(" Settings & Info")
     
     # Model selection
     if detector.models:
         selected_model = st.sidebar.selectbox(
-            "🤖 Select AI Model",
+            " Select AI Model",
             list(detector.models.keys()),
             help="Choose which AI model to use for prediction"
         )
     else:
-        st.sidebar.error("❌ No models loaded")
-        st.sidebar.info("📝 To enable AI predictions:\n1. Upload models to Google Drive\n2. Make them publicly accessible\n3. Update file IDs in code")
+        st.sidebar.error(" No models loaded")
+        st.sidebar.info(" To enable AI predictions:\n1. Upload models to Google Drive\n2. Make them publicly accessible\n3. Update file IDs in code")
         selected_model = None
     
     # Feature toggles
-    st.sidebar.subheader("🎯 Features")
-    show_videos = st.sidebar.checkbox("📺 Show YouTube Recommendations", True)
-    show_treatment = st.sidebar.checkbox("💊 Show Treatment Information", True)
-    show_hospitals = st.sidebar.checkbox("🏥 Show Nearby Hospitals", True)
+    st.sidebar.subheader(" Features")
+    show_videos = st.sidebar.checkbox(" Show YouTube Recommendations", True)
+    show_treatment = st.sidebar.checkbox(" Show Treatment Information", True)
+    show_hospitals = st.sidebar.checkbox(" Show Nearby Hospitals", True)
     
     # Image enhancement
-    st.sidebar.subheader("🎨 Image Enhancement")
+    st.sidebar.subheader(" Image Enhancement")
     brightness = st.sidebar.slider("Brightness", 0.5, 2.0, 1.0, 0.1)
     contrast = st.sidebar.slider("Contrast", 0.5, 2.0, 1.0, 0.1)
     
     # Main content
-    tab1, tab2, tab3, tab4 = st.tabs(["🔍 Diagnosis", "📺 Resources", "🏥 Find Care", "📊 About"])
+    tab1, tab2, tab3, tab4 = st.tabs([" Diagnosis", " Resources", " Find Care", " About"])
     
     with tab1:
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            st.subheader("📤 Upload Chest X-Ray")
+            st.subheader(" Upload Chest X-Ray")
             
             uploaded_file = st.file_uploader(
                 "Choose a chest X-ray image",
@@ -479,11 +537,11 @@ def main():
                 
                 st.image(img, caption="Uploaded X-Ray", use_column_width=True)
                 
-                if st.button("🚀 Analyze X-Ray", key="analyze_btn"):
+                if st.button(" Analyze X-Ray", key="analyze_btn"):
                     if not detector.models:
-                        st.error("❌ No models available. Please configure Google Drive links for model files.")
+                        st.error("No models available. Please configure Google Drive links for model files.")
                     else:
-                        with st.spinner("🔄 AI is analyzing your X-ray..."):
+                        with st.spinner(" AI is analyzing your X-ray..."):
                             result = detector.predict(img, selected_model)
                             
                             if result:
@@ -503,7 +561,7 @@ def main():
                 
                 st.markdown(f"""
                 <div class="prediction-box {box_class}">
-                    <h2 style="margin: 0;">🎯 Diagnosis: {prediction}</h2>
+                    <h2 style="margin: 0;"> Diagnosis: {prediction}</h2>
                     <h3 style="margin: 10px 0;">Confidence: {confidence:.1%}</h3>
                     <p style="margin: 5px 0; font-size: 0.9rem;">
                         Model: {selected_model} | Time: {result['inference_time']:.3f}s
@@ -532,59 +590,59 @@ def main():
                 
                 # Treatment information
                 if show_treatment:
-                    st.subheader("💊 Recommended Actions")
+                    st.subheader(" Recommended Actions")
                     treatment_info = get_treatment_info(prediction)
                     
                     if prediction == "PNEUMONIA":
                         st.markdown("""
                         <div class="treatment-section">
-                            <h3>⚠️ Important: Seek Medical Attention</h3>
+                            <h3> Important: Seek Medical Attention</h3>
                             <p>This AI detection suggests possible pneumonia. Please consult a healthcare professional immediately for proper diagnosis and treatment.</p>
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        with st.expander("🚨 Immediate Actions", expanded=True):
+                        with st.expander(" Immediate Actions", expanded=True):
                             for action in treatment_info['immediate_actions']:
                                 st.write(f"• {action}")
                         
-                        with st.expander("💊 Medical Treatment Options"):
+                        with st.expander(" Medical Treatment Options"):
                             for treatment in treatment_info['medical_treatment']:
                                 st.write(f"• {treatment}")
                         
-                        with st.expander("🏠 Home Care Guidelines"):
+                        with st.expander(" Home Care Guidelines"):
                             for care in treatment_info['home_care']:
                                 st.write(f"• {care}")
                         
-                        with st.expander("⚠️ Warning Signs - Seek Emergency Care"):
+                        with st.expander(" Warning Signs - Seek Emergency Care"):
                             for sign in treatment_info['warning_signs']:
                                 st.write(f"• {sign}")
                         
-                        st.info(f"⏱️ **Expected Recovery Time:** {treatment_info['recovery_time']}")
-                        st.info(f"📅 **Follow-up:** {treatment_info['follow_up']}")
+                        st.info(f" **Expected Recovery Time:** {treatment_info['recovery_time']}")
+                        st.info(f" **Follow-up:** {treatment_info['follow_up']}")
                     
                     else:
-                        st.success("✅ Your X-ray appears normal! Here are some tips to maintain healthy lungs:")
+                        st.success(" Your X-ray appears normal! Here are some tips to maintain healthy lungs:")
                         
-                        with st.expander("🛡️ Prevention Tips", expanded=True):
+                        with st.expander(" Prevention Tips", expanded=True):
                             for tip in treatment_info['prevention_tips']:
                                 st.write(f"• {tip}")
                         
-                        with st.expander("💪 Healthy Habits"):
+                        with st.expander(" Healthy Habits"):
                             for habit in treatment_info['healthy_habits']:
                                 st.write(f"• {habit}")
                 
                 # Medical disclaimer
                 st.warning("""
-                ⚠️ **Medical Disclaimer**: This AI tool is for educational and screening purposes only. 
+                 **Medical Disclaimer**: This AI tool is for educational and screening purposes only. 
                 It should NOT be used as a substitute for professional medical diagnosis. 
                 Always consult with qualified healthcare professionals for medical decisions and treatment.
                 """)
             
             else:
-                st.info("👆 Upload an X-ray image and click 'Analyze' to see results")
+                st.info(" Upload an X-ray image and click 'Analyze' to see results")
     
     with tab2:
-        st.subheader("📺 Educational Resources")
+        st.subheader(" Educational Resources")
         
         if 'analyzed' in st.session_state and st.session_state.analyzed:
             result = st.session_state.result
@@ -592,10 +650,10 @@ def main():
             
             if show_videos:
                 if prediction == "PNEUMONIA":
-                    st.markdown("### 🎥 Recommended Videos About Pneumonia")
+                    st.markdown("###  Recommended Videos About Pneumonia")
                     videos = get_youtube_videos("pneumonia treatment")
                 else:
-                    st.markdown("### 🎥 Lung Health & Prevention Videos")
+                    st.markdown("###  Lung Health & Prevention Videos")
                     videos = get_youtube_videos("lung health")
                 
                 for i, video in enumerate(videos, 1):
@@ -612,13 +670,13 @@ def main():
                     """, unsafe_allow_html=True)
                 
                 st.markdown("---")
-                st.markdown("### 📚 Additional Resources")
+                st.markdown("###  Additional Resources")
                 
                 col1, col2 = st.columns(2)
                 
                 with col1:
                     st.markdown("""
-                    **🏥 Medical Organizations:**
+                    ** Medical Organizations:**
                     - [WHO - Pneumonia](https://www.who.int/news-room/fact-sheets/detail/pneumonia)
                     - [CDC - Pneumonia](https://www.cdc.gov/pneumonia/)
                     - [Mayo Clinic - Pneumonia](https://www.mayoclinic.org/diseases-conditions/pneumonia)
@@ -626,16 +684,39 @@ def main():
                 
                 with col2:
                     st.markdown("""
-                    **📖 Patient Education:**
+                    ** Patient Education:**
                     - [American Lung Association](https://www.lung.org/)
                     - [National Heart, Lung, and Blood Institute](https://www.nhlbi.nih.gov/)
                     - [MedlinePlus - Pneumonia](https://medlineplus.gov/pneumonia.html)
                     """)
         else:
-            st.info("📊 Analyze an X-ray first to see personalized educational resources")
+            st.info(" Analyze an X-ray first to see personalized educational resources")
     
     with tab3:
-        st.subheader("🏥 Find Nearby Healthcare Facilities")
+        st.subheader(" Find Nearby Healthcare Facilities")
+        
+        # Location input
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            user_address = st.text_input(
+                "📍 Enter your location (address, city, or zip code)",
+                placeholder="e.g., New York, NY or 10001",
+                help="Enter your location to find nearby hospitals"
+            )
+        
+        with col2:
+            use_real_api = st.checkbox(
+                "🌐 Use Real API", 
+                value=True,
+                help="Use real location API to find hospitals (requires internet)"
+            )
+        
+        # API status indicator
+        if APIConfig.is_google_maps_configured():
+            st.success("✅ Google Maps API configured")
+        else:
+            st.info("ℹ️ Using free OpenStreetMap API (no API key required)")
         
         if 'analyzed' in st.session_state and st.session_state.analyzed:
             result = st.session_state.result
@@ -644,27 +725,30 @@ def main():
                 st.warning("🚨 **Pneumonia detected!** Here are nearby healthcare facilities:")
                 
                 # Create and display map
-                hospital_map, hospitals = create_hospital_map()
+                hospital_map, hospitals = create_hospital_map(
+                    user_address=user_address if user_address else None,
+                    use_real_api=use_real_api
+                )
                 folium_static(hospital_map, width=700, height=500)
                 
-                st.markdown("### 📍 Nearby Hospitals")
+                st.markdown("###  Nearby Hospitals")
                 
                 for hospital in hospitals:
-                    emergency_badge = "🚨 Emergency Services" if hospital['emergency'] else "🏥 Clinic"
+                    emergency_badge = "🚨 Emergency Services" if hospital['emergency'] else " Clinic"
                     
                     st.markdown(f"""
                     <div class="hospital-card">
                         <h4>{hospital['name']}</h4>
-                        <p><b>📍 Address:</b> {hospital['address']}</p>
-                        <p><b>📞 Phone:</b> <a href="tel:{hospital['phone']}">{hospital['phone']}</a></p>
-                        <p><b>📏 Distance:</b> {hospital['distance']}</p>
+                        <p><b> Address:</b> {hospital['address']}</p>
+                        <p><b> Phone:</b> <a href="tel:{hospital['phone']}">{hospital['phone']}</a></p>
+                        <p><b> Distance:</b> {hospital['distance']}</p>
                         <p><b>{emergency_badge}</b></p>
                     </div>
                     """, unsafe_allow_html=True)
                 
                 st.markdown("---")
                 st.info("""
-                💡 **Tips for Hospital Visit:**
+                 **Tips for Hospital Visit:**
                 - Bring your X-ray images and this AI report
                 - List all current symptoms and medications
                 - Bring insurance information
@@ -672,14 +756,14 @@ def main():
                 """)
             
             else:
-                st.success("✅ Your X-ray appears normal. Regular check-ups are still recommended!")
-                st.info("🏥 For routine check-ups, consult your primary care physician.")
+                st.success(" Your X-ray appears normal. Regular check-ups are still recommended!")
+                st.info(" For routine check-ups, consult your primary care physician.")
         
         else:
-            st.info("📊 Analyze an X-ray first to see nearby healthcare facilities")
+            st.info(" Analyze an X-ray first to see nearby healthcare facilities")
     
     with tab4:
-        st.subheader("📊 About This System")
+        st.subheader(" About This System")
         
         col1, col2, col3 = st.columns(3)
         
@@ -710,36 +794,36 @@ def main():
         st.markdown("---")
         
         st.markdown("""
-        ### 🤖 AI Technology
+        ###  AI Technology
         
         This system uses a **hybrid deep learning architecture** combining:
         - **ResNet50**: Pre-trained convolutional neural network
         - **Autoencoder**: Custom feature extraction
         - **Transfer Learning**: Adapted for medical imaging
         
-        ### 🎯 Features
+        ###  Features
         
-        - ✅ **AI-Powered Detection**: 90-95% accuracy in pneumonia detection
-        - ✅ **Educational Resources**: Curated YouTube videos and medical information
-        - ✅ **Treatment Guidance**: Evidence-based recommendations
-        - ✅ **Hospital Locator**: Find nearby healthcare facilities
-        - ✅ **Real-time Analysis**: Results in less than 1 second
+        -  **AI-Powered Detection**: 90-95% accuracy in pneumonia detection
+        -  **Educational Resources**: Curated YouTube videos and medical information
+        -  **Treatment Guidance**: Evidence-based recommendations
+        -  **Hospital Locator**: Find nearby healthcare facilities
+        -  **Real-time Analysis**: Results in less than 1 second
         
-        ### 🔬 Model Training
+        ###  Model Training
         
         - **Dataset**: 5,856 chest X-ray images
         - **Training Platform**: Google Colab with GPU acceleration
         - **Architecture**: Hybrid (ResNet50 + Autoencoder)
         - **Validation**: Tested on independent test set
         
-        ### ⚠️ Important Notes
+        ###  Important Notes
         
         - This is a **screening tool**, not a diagnostic device
         - Always consult healthcare professionals for medical decisions
         - Results should be verified by qualified radiologists
         - For educational and research purposes
         
-        ### 👨‍💻 Technology Stack
+        ### Technology Stack
         
         - **AI/ML**: TensorFlow, Keras, ResNet50
         - **Web Framework**: Streamlit
@@ -750,8 +834,8 @@ def main():
         st.markdown("---")
         st.markdown("""
         <div style='text-align: center; color: #666;'>
-            <p>🫁 Pneumonia Detection & Care System</p>
-            <p>Built with ❤️ using AI and Modern Web Technologies</p>
+            <p>Pneumonia Detection & Care System</p>
+            <p>Built with using AI and Modern Web Technologies</p>
         </div>
         """, unsafe_allow_html=True)
 
